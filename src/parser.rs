@@ -1,7 +1,7 @@
 //! The parser functionality
 
-use c_signatures::*;
-use global::*;
+use bindings::*;
+use c_helpers::*;
 use tree::*;
 
 use std::ffi::{CStr, CString};
@@ -14,12 +14,12 @@ enum XmlParserOption {
   // XML_PARSE_NODEFDTD = 4, // do not default a doctype if not found
   Noerror = 32, // suppress error reports
   Nowarning = 64, // suppress warning reports
-                  // XML_PARSE_PEDANTIC = 128, // pedantic error reporting
-                  // XML_PARSE_NOBLANKS = 256, // remove blank nodes
-                  // XML_PARSE_NONET = 2048, // Forbid network access
-                  // XML_PARSE_NOIMPLIED = 8192, // Do not add implied Xml/body... elements
-                  // XML_PARSE_COMPACT = 65536, // compact small text nodes
-                  // XML_PARSE_IGNORE_ENC = 2097152, // ignore internal document encoding hint
+                // XML_PARSE_PEDANTIC = 128, // pedantic error reporting
+                // XML_PARSE_NOBLANKS = 256, // remove blank nodes
+                // XML_PARSE_NONET = 2048, // Forbid network access
+                // XML_PARSE_NOIMPLIED = 8192, // Do not add implied Xml/body... elements
+                // XML_PARSE_COMPACT = 65536, // compact small text nodes
+                // XML_PARSE_IGNORE_ENC = 2097152, // ignore internal document encoding hint
 }
 
 enum HtmlParserOption {
@@ -27,12 +27,12 @@ enum HtmlParserOption {
   // HTML_PARSE_NODEFDTD = 4, // do not default a doctype if not found
   Noerror = 32, // suppress error reports
   Nowarning = 64, // suppress warning reports
-                  // HTML_PARSE_PEDANTIC = 128, // pedantic error reporting
-                  // HTML_PARSE_NOBLANKS = 256, // remove blank nodes
-                  // HTML_PARSE_NONET = 2048, // Forbid network access
-                  // HTML_PARSE_NOIMPLIED = 8192, // Do not add implied html/body... elements
-                  // HTML_PARSE_COMPACT = 65536, // compact small text nodes
-                  // HTML_PARSE_IGNORE_ENC = 2097152, // ignore internal document encoding hint
+                // HTML_PARSE_PEDANTIC = 128, // pedantic error reporting
+                // HTML_PARSE_NOBLANKS = 256, // remove blank nodes
+                // HTML_PARSE_NONET = 2048, // Forbid network access
+                // HTML_PARSE_NOIMPLIED = 8192, // Do not add implied html/body... elements
+                // HTML_PARSE_COMPACT = 65536, // compact small text nodes
+                // HTML_PARSE_IGNORE_ENC = 2097152, // ignore internal document encoding hint
 }
 
 ///Parser Errors
@@ -65,23 +65,26 @@ pub struct Parser {
 impl Default for Parser {
   /// Create a parser for XML documents
   fn default() -> Self {
-    _libxml_global_init();
-    Parser { format: ParseFormat::XML }
+    Parser {
+      format: ParseFormat::XML,
+    }
   }
 }
 impl Parser {
   /// Create a parser for HTML documents
   pub fn default_html() -> Self {
-    _libxml_global_init();
-    Parser { format: ParseFormat::HTML }
+    Parser {
+      format: ParseFormat::HTML,
+    }
   }
 
   ///Parses the XML/HTML file `filename` to generate a new `Document`
   pub fn parse_file(&self, filename: &str) -> Result<Document, XmlParseError> {
     let c_filename = CString::new(filename).unwrap();
     let c_utf8 = CString::new("utf-8").unwrap();
-    let options: u32 = XmlParserOption::Recover as u32 + XmlParserOption::Noerror as u32 +
-      XmlParserOption::Nowarning as u32;
+    let options: i32 = XmlParserOption::Recover as i32
+      + XmlParserOption::Noerror as i32
+      + XmlParserOption::Nowarning as i32;
     match self.format {
       ParseFormat::XML => unsafe {
         xmlKeepBlanksDefault(1);
@@ -95,8 +98,9 @@ impl Parser {
       ParseFormat::HTML => {
         // TODO: Allow user-specified options later on
         unsafe {
-          let options: u32 = HtmlParserOption::Recover as u32 + HtmlParserOption::Noerror as u32 +
-            HtmlParserOption::Nowarning as u32;
+          let options: i32 = HtmlParserOption::Recover as i32
+            + HtmlParserOption::Noerror as i32
+            + HtmlParserOption::Nowarning as i32;
           xmlKeepBlanksDefault(1);
           let docptr = htmlReadFile(c_filename.as_ptr(), c_utf8.as_ptr(), options);
           if docptr.is_null() {
@@ -116,9 +120,15 @@ impl Parser {
     let c_url = CString::new("").unwrap();
     match self.format {
       ParseFormat::XML => unsafe {
-        let options: u32 = XmlParserOption::Recover as u32 + XmlParserOption::Noerror as u32 +
-          XmlParserOption::Nowarning as u32;
-        let docptr = xmlReadDoc(c_string.as_ptr(), c_url.as_ptr(), c_utf8.as_ptr(), options);
+        let options: i32 = XmlParserOption::Recover as i32
+          + XmlParserOption::Noerror as i32
+          + XmlParserOption::Nowarning as i32;
+        let docptr = xmlReadDoc(
+          c_string.as_bytes().as_ptr(),
+          c_url.as_ptr(),
+          c_utf8.as_ptr(),
+          options,
+        );
         if docptr.is_null() {
           Err(XmlParseError::GotNullPointer)
         } else {
@@ -126,9 +136,15 @@ impl Parser {
         }
       },
       ParseFormat::HTML => unsafe {
-        let options: u32 = HtmlParserOption::Recover as u32 + HtmlParserOption::Noerror as u32 +
-          HtmlParserOption::Nowarning as u32;
-        let docptr = htmlReadDoc(c_string.as_ptr(), c_url.as_ptr(), c_utf8.as_ptr(), options);
+        let options: i32 = HtmlParserOption::Recover as i32
+          + HtmlParserOption::Noerror as i32
+          + HtmlParserOption::Nowarning as i32;
+        let docptr = htmlReadDoc(
+          c_string.as_bytes().as_ptr(),
+          c_url.as_ptr(),
+          c_utf8.as_ptr(),
+          options,
+        );
         if docptr.is_null() {
           Err(XmlParseError::GotNullPointer)
         } else {
@@ -157,13 +173,12 @@ impl Parser {
         setWellFormednessHandler(ctxt);
         let docptr = htmlCtxtReadDoc(
           ctxt,
-          c_string.as_ptr(),
+          c_string.as_bytes().as_ptr(),
           ptr::null_mut(),
           c_utf8.as_ptr(),
           10_596,
         ); // htmlParserOption = 4+32+64+256+2048+8192
-        let is_well_formed = htmlWellFormed(ctxt);
-        let well_formed_final = if is_well_formed > 0 {
+        let well_formed_final = if htmlWellFormed(ctxt) {
           // Basic well-formedness passes, let's check if we have an <html> element as root too
           if !docptr.is_null() {
             let node_ptr = xmlDocGetRootElement(docptr);
@@ -193,11 +208,5 @@ impl Parser {
         well_formed_final
       },
     }
-  }
-}
-
-impl Drop for Parser {
-  fn drop(&mut self) {
-    _libxml_global_drop();
   }
 }

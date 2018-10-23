@@ -1,5 +1,78 @@
 # Change Log
-## [0.1.3 (in active dev)]
+
+## [0.2.6] (in active development)
+
+## [0.2.5] 2018-26-09
+
+### Added
+ * `Node::null` placeholder that avoids the tricky memory management of `Node::mock` that can lead to memory leaks. Really a poor substitute for the better `Option<Node>` type with a `None` value, which is **recommended** instead.
+
+## [0.2.4] 2018-24-09
+
+### Added
+ * `Context::from_node` method for convenient XPath context initialization via a Node object. Possible as nodes keep a reference to their owner `Document` object.
+
+ ### Changed
+  * Ensured memory safety of cloning xpath `Context` objects
+  * Switched to using `Weak` references to the owner document, in `Node`, `Context` and `Object`, to prevent memory leaks in mutli-document pipelines.
+  * Speedup to XPath node retrieval
+  
+## [0.2.3] 2018-19-09
+
+### Added
+ * `Node::findnodes` method for direct XPath search, without first explicitly instantiating a `Context`. Reusing a `Context` remains more efficient.
+
+## [0.2.2] 2018-23-07
+
+ * Expose the underlying `libxml2` data structures in the public crate interface, to enable a first [libxslt](https://crates.io/crates/libxslt) crate proof of concept.
+
+## [0.2.1] 2018-23-07
+
+### Added
+
+ * `Node::set_node_rc_guard` which allows customizing the reference-count mutability threshold for Nodes.
+ * serialization tests for `Document`
+ * (crate internal) full set of libxml2 bindings as produced via `bindgen` (see #39)
+ * (crate internal) using libxml2's type language in the wrapper Rust modules
+ * (crate internal) setup bindings for reuse in higher-level crates, such as libxslt
+ 
+
+### Changed
+
+ * `NodeType::from_c_int` renamed to `NodeType::from_int`, now accepting a `u32` argument
+
+### Removed
+
+ * Removed dependence on custom C code; also removed gcc from build dependencies
+
+
+## [0.2.0] 2018-19-07
+
+This release adds fundamental breaking changes to the API. The API continues to be considered unstable until the `1.0.0` release.
+
+### Added
+
+ * `dup` and `dup_from` methods for deeply duplicating a libxml2 document
+ * `is_unlinked` for quick check if a `Node` has been unlinked from a parent
+
+### Changed
+
+ * safe API for `Node`s and `Document`s, with automatic pointer bookkeeping and memory deallocation, by @triptec
+   * `Node`s are now bookkept by their owning document
+   * libxml2 low-level memory deallocation is postponed until the `Document` is dropped, with the exception of unlinked nodes, who are deallocated on drop.
+   * `Document::get_root_element` now has an option type, and returns `None` for an empty Document
+   * `Node::mock` now takes owner `Document` as argument
+   * proofed tests with `valgrind` and removed all obvious memory leaks
+ * All node operations that modify a `Node` now both require a `&mut Node` argument and return a `Result` type. 
+   * Full list of changed signatures in Node: `remove_attribute`, `remove_property`, `set_name`, `set_content`, `set_property`, `set_property_ns`, `set_attribute`, `set_attribute_ns`, `remove_attribute`, `set_namespace`, `recursively_remove_namespaces`, `append_text` 
+ * Tree transforming operations that use operate on `&mut self`, and no longer return a Node if the return value is identical to the argument. 
+   * Changed signatures: `add_child`, `add_prev_sibling`, `add_next_sibling`
+ * `Result` types should always be checked for errors, as mutability conflicts are reported during runtime.
+
+### Removed
+
+ * `global` module, which attempted to manage global libxml state for threaded workflows. May be readed after the API stabilizes
+
 
 ## [0.1.2] 2018-12-01
 
@@ -8,6 +81,7 @@
 ### Added
  
 * Workaround `.free` method for freeing nodes, until the `Rc<RefCell<_Node>>` free-on-drop solution by Andreas is introduced in 0.2
+
 
 ## [0.1.1] 2017-18-12
 
@@ -19,6 +93,7 @@
 ### Changed
 
 * Requiring owned `Node` function arguments only when consumed - `add_*` methods largely take `&Node` now.
+
 
 ## [0.1.0] 2017-09-11
 
@@ -32,6 +107,7 @@ Pushing up release to a 0.1, as contributor interest is starting to pick up, and
 ### Changed
 
 * Updated gcc build to newer incantation, upped dependency version.
+
 
 ## [0.0.75] 2017-04-06
 
@@ -48,6 +124,7 @@ Pushing up release to a 0.1, as contributor interest is starting to pick up, and
 * Refactored wrongly used `url` to `href` for namespace-related Node ops.
 * Fixed bug with Node's `get_content` method always returning empty
 * More stable `append_text` for node, added tests
+
 
 ## [0.0.74] 2016-25-12
 
