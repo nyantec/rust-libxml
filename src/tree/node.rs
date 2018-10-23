@@ -516,33 +516,33 @@ impl Node {
     }
   }
 
-  /// Gets a list of namespaces associated with this node
-  pub fn get_namespaces(&self, doc: &Document) -> Vec<Namespace> {
-    let list_ptr_raw = unsafe { xmlGetNsList(doc.doc_ptr(), self.node_ptr()) };
-    if list_ptr_raw.is_null() {
-      Vec::new()
-    } else {
-      let mut namespaces = Vec::new();
-      let mut ptr_iter = list_ptr_raw as *mut xmlNsPtr;
-      unsafe {
-        while !ptr_iter.is_null() && !(*ptr_iter).is_null() {
-          namespaces.push(Namespace { ns_ptr: *ptr_iter });
-          ptr_iter = ptr_iter.add(1);
-        }
-        /* TODO: valgrind suggests this technique isn't sufficiently fluent:
-          ==114895== Conditional jump or move depends on uninitialised value(s)
-          ==114895==    at 0x4E9962F: xmlFreeNs (in /usr/lib/x86_64-linux-gnu/libxml2.so.2.9.4)
-          ==114895==    by 0x195CE8: libxml::tree::Node::get_namespaces (tree.rs:723)
-          ==114895==    by 0x12E7B6: base_tests::can_work_with_namespaces (base_tests.rs:537)
+  ///// Gets a list of namespaces associated with this node
+  //pub fn get_namespaces(&self, doc: &Document) -> Vec<Namespace> {
+  //  let list_ptr_raw = unsafe { xmlGetNsList(doc.doc_ptr(), self.node_ptr()) };
+  //  if list_ptr_raw.is_null() {
+  //    Vec::new()
+  //  } else {
+  //    let mut namespaces = Vec::new();
+  //    let mut ptr_iter = list_ptr_raw as *mut xmlNsPtr;
+  //    unsafe {
+  //      while !ptr_iter.is_null() && !(*ptr_iter).is_null() {
+  //        namespaces.push(Namespace { ns_ptr: *ptr_iter });
+  //        ptr_iter = ptr_iter.add(1);
+  //      }
+  //      /* TODO: valgrind suggests this technique isn't sufficiently fluent:
+  //        ==114895== Conditional jump or move depends on uninitialised value(s)
+  //        ==114895==    at 0x4E9962F: xmlFreeNs (in /usr/lib/x86_64-linux-gnu/libxml2.so.2.9.4)
+  //        ==114895==    by 0x195CE8: libxml::tree::Node::get_namespaces (tree.rs:723)
+  //        ==114895==    by 0x12E7B6: base_tests::can_work_with_namespaces (base_tests.rs:537)
 
-          DG: I could not improve on this state without creating memory leaks after ~1 hour, so I am
-          marking it as future work.
-        */
-        xmlFreeNs(list_ptr_raw as xmlNsPtr);
-      }
-      namespaces
-    }
-  }
+  //        DG: I could not improve on this state without creating memory leaks after ~1 hour, so I am
+  //        marking it as future work.
+  //      */
+  //      xmlFreeNs(list_ptr_raw as xmlNsPtr);
+  //    }
+  //    namespaces
+  //  }
+  //}
 
   /// Get a list of namespaces declared with this node
   pub fn get_namespace_declarations(&self) -> Vec<Namespace> {
